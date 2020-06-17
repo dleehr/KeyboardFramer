@@ -116,29 +116,49 @@
     constraint.active = YES;
 }
 
+- (void)viewSafeAreaInsetsDidChange {
+    [super viewSafeAreaInsetsDidChange];
+    NSLog(@"viewSafeAreaInsetsDidChange: %@", NSStringFromUIEdgeInsets(self.view.safeAreaInsets));
+//    2020-06-16 23:27:29.331065-0400 KeyboardFramer[43154:2088782] viewSafeAreaInsetsDidChange: {44, 0, 34, 0}
+    // top, left, bottom, right
+
+}
+
 - (void)handleKeyboardOffset:(CGFloat)heightOffset {
     // This method can update multiple constraints if it needs to
-    self.bottomConstraint.constant = - heightOffset;
+
+    // ah here's the trick.
+    // when the height offset is zero, keyboard is off the screen and our views should bind to the safe area layout guide on the bottom
+    // but when it's zero, we don't care about the safe area layout guide really - because the keyboard itself accounts for that
+    // so if we simply update the constant, we'd just be adding a gap
+    // if the height offset is nonzero, the bottomConstraint should NOT be the safeAreaLayoutGuide
+    // we can stil use the safe area layout guide, but just update the constant to account for that when heightOffset is nonzero
+
+    if (heightOffset == 0.0f) {
+        self.bottomConstraint.constant = 0.0f;
+    } else {
+        self.bottomConstraint.constant = self.view.safeAreaInsets.bottom - heightOffset;
+    }
 }
 
 - (void)keyboardWillChangeFrameNotification:(NSNotification *)notification {
-        NSDictionary *userInfo = notification.userInfo;
-        // This is where the keyboard will end up
-        CGRect frameEnd = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
-        UIViewAnimationCurve animationCurve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] unsignedIntegerValue];
-        NSTimeInterval animationDuration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-        CGRect keyboardRect = [self.view convertRect:frameEnd fromView:nil];
-        CGFloat heightOffset = CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboardRect);
+    NSDictionary *userInfo = notification.userInfo;
+    // This is where the keyboard will end up
+    CGRect frameEnd = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    UIViewAnimationCurve animationCurve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] unsignedIntegerValue];
+    NSTimeInterval animationDuration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    CGRect keyboardRect = [self.view convertRect:frameEnd fromView:nil];
+    CGFloat heightOffset = CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboardRect);
 
-        UIViewAnimationOptions options = animationCurve << 16;
-        [UIView animateWithDuration:animationDuration
-                              delay:0.0
-                            options:options
-                         animations:^{
-            [self handleKeyboardOffset:heightOffset];
-            [self.view layoutIfNeeded];
-            [self.view setNeedsLayout];
-        } completion:nil];
+    UIViewAnimationOptions options = animationCurve << 16;
+    [UIView animateWithDuration:animationDuration
+                          delay:0.0
+                        options:options
+                     animations:^{
+        [self handleKeyboardOffset:heightOffset];
+        [self.view layoutIfNeeded];
+        [self.view setNeedsLayout];
+    } completion:nil];
 }
 
 @end
