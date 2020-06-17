@@ -114,7 +114,11 @@
     [self.view addConstraint:constraint];
     NSLog(@"right %@", @(constraint.active));
     constraint.active = YES;
+}
 
+- (void)handleKeyboardOffset:(CGFloat)heightOffset {
+    // This method can update multiple constraints if it needs to
+    self.bottomConstraint.constant = - heightOffset;
 }
 
 - (void)keyboardWillChangeFrameNotification:(NSNotification *)notification {
@@ -124,23 +128,17 @@
         UIViewAnimationCurve animationCurve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] unsignedIntegerValue];
         NSTimeInterval animationDuration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
         CGRect keyboardRect = [self.view convertRect:frameEnd fromView:nil];
-        CGFloat heightOffset = CGRectGetHeight(self.view.bounds) - CGRectGetMinY(keyboardRect);
+        CGFloat heightOffset = CGRectGetMaxY(self.view.bounds) - CGRectGetMinY(keyboardRect);
 
         UIViewAnimationOptions options = animationCurve << 16;
         [UIView animateWithDuration:animationDuration
                               delay:0.0
                             options:options
                          animations:^{
-                             if(heightOffset == 0.0f) { // keyboard is not on the screen
-                                 // When the keyboard is not on the screen we use the constraint that binds things to the safe area
-                                 self.bottomConstraint.constant = 0.0f;
-                             } else {
-                                 // When the keyboard is on the screen we don't want to constrain to the safe area anymore
-                                 self.bottomConstraint.constant = -heightOffset;
-                             }
-                             [self.view layoutIfNeeded];
-                             [self.view setNeedsLayout];
-                         } completion:nil];
+            [self handleKeyboardOffset:heightOffset];
+            [self.view layoutIfNeeded];
+            [self.view setNeedsLayout];
+        } completion:nil];
 }
 
 @end
