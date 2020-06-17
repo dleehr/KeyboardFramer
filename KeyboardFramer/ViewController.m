@@ -11,6 +11,7 @@
 @interface ViewController ()
 
 @property (nonatomic, weak) UITextField *textField;
+@property (nonatomic, weak) NSLayoutConstraint *bottomConstraint;
 
 @end
 
@@ -21,6 +22,10 @@
     self.view.backgroundColor = [UIColor whiteColor];
     // Do any additional setup after loading the view.
     [self addAStack];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(keyboardWillChangeFrameNotification:)
+                                                 name:UIKeyboardWillChangeFrameNotification
+                                               object:nil];
 }
 
 - (void)showKeyboard:(UIButton *)sender {
@@ -96,6 +101,7 @@
     [self.view addConstraint:constraint];
     NSLog(@"bottom %@", @(constraint.active));
     constraint.active = YES;
+    self.bottomConstraint = constraint;
     
     // left
     constraint = [stackView.leftAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leftAnchor];
@@ -109,6 +115,32 @@
     NSLog(@"right %@", @(constraint.active));
     constraint.active = YES;
 
+}
+
+- (void)keyboardWillChangeFrameNotification:(NSNotification *)notification {
+        NSDictionary *userInfo = notification.userInfo;
+        // This is where the keyboard will end up
+        CGRect frameEnd = [userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+        UIViewAnimationCurve animationCurve = [userInfo[UIKeyboardAnimationCurveUserInfoKey] unsignedIntegerValue];
+        NSTimeInterval animationDuration = [userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+        CGRect keyboardRect = [self.view convertRect:frameEnd fromView:nil];
+        CGFloat heightOffset = CGRectGetHeight(self.view.bounds) - CGRectGetMinY(keyboardRect);
+
+        UIViewAnimationOptions options = animationCurve << 16;
+        [UIView animateWithDuration:animationDuration
+                              delay:0.0
+                            options:options
+                         animations:^{
+                             if(heightOffset == 0.0f) { // keyboard is not on the screen
+                                 // When the keyboard is not on the screen we use the constraint that binds things to the safe area
+                                 self.bottomConstraint.constant = 0.0f;
+                             } else {
+                                 // When the keyboard is on the screen we don't want to constrain to the safe area anymore
+                                 self.bottomConstraint.constant = -heightOffset;
+                             }
+                             [self.view layoutIfNeeded];
+                             [self.view setNeedsLayout];
+                         } completion:nil];
 }
 
 @end
