@@ -16,7 +16,13 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.view.backgroundColor = [UIColor whiteColor];
     // Do any additional setup after loading the view.
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.text = @"Hello World";
+    [label sizeToFit];
+    label.center = self.view.center;
+    [self.view addSubview:label];
 }
 
 
