@@ -8,6 +8,26 @@
 
 #import "ViewController.h"
 
+@interface DLLToolbar : UIToolbar
+
+@end
+
+@implementation DLLToolbar
+
+- (instancetype)init {
+    self = [super initWithFrame:CGRectMake(0.0f, 0.0f, 375.0f, 44.0f)];
+    return self;
+}
+
+// setItems calls into this, so no need to override both
+- (void)setItems:(NSArray<UIBarButtonItem *> *)items animated:(BOOL)animated {
+    [super setItems:items animated:animated];
+    [self updateConstraintsIfNeeded];
+}
+
+@end
+
+
 @interface ViewController ()
 
 @property (nonatomic, weak) UITextField *textField;
@@ -26,6 +46,10 @@
                                              selector:@selector(keyboardWillChangeFrameNotification:)
                                                  name:UIKeyboardWillChangeFrameNotification
                                                object:nil];
+}
+
+- (void)doneTapped:(id)sender {
+    [self.textField resignFirstResponder];
 }
 
 - (void)showKeyboard:(UIButton *)sender {
@@ -68,6 +92,15 @@
  
     textField.backgroundColor = [UIColor purpleColor];
     self.textField = textField;
+    
+    // Remember, auto layout for UIToolbars gets messed up
+    UIToolbar *toolbar = [[DLLToolbar alloc] init];
+    
+    UIBarButtonItem *doneItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(doneTapped:)];
+    UIBarButtonItem *flex = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:nil action:nil];
+    toolbar.items = @[ flex, doneItem ];
+    self.textField.inputAccessoryView = toolbar;
+    
     // Git Identity
     // Descriptive paragraph
     // buttons
